@@ -1,6 +1,24 @@
 import tkinter as tk
 from tkinter import messagebox
 
+class TelaBoasVindas:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Bem-vindo ao Jogo de Damas")
+
+        self.rotulo_boas_vindas = tk.Label(root, text="Bem-vindo ao Jogo de Damas", font=("Helvetica", 16))
+        self.rotulo_boas_vindas.pack(pady=20)
+
+        self.botao_jogar = tk.Button(root, text="Jogar", command=self.iniciar_jogo)
+        self.botao_jogar.pack(pady=10)
+
+    def iniciar_jogo(self):
+        self.root.destroy()  # Fechar a tela de boas-vindas
+        root_jogo = tk.Tk()
+        root_jogo.title("Jogo de Damas")
+        tabuleiro = TabuleiroDamas(root_jogo)
+        root_jogo.mainloop()
+
 class Peca:
     def __init__(self, cor, rei=False):
         self.cor = cor
@@ -14,6 +32,7 @@ class TabuleiroDamas:
         self.altura_casa = 50
         self.tabuleiro = [[None for _ in range(tamanho_tabuleiro)] for _ in range(tamanho_tabuleiro)]
         self.peca_selecionada = None
+        self.jogador_atual = "branca"  # Começa com as peças brancas
 
         self.criar_tabuleiro()
         self.adicionar_pecas_iniciais()
@@ -48,19 +67,44 @@ class TabuleiroDamas:
             destino = (linha, coluna)
             if self.movimento_valido(self.peca_selecionada, destino):
                 self.mover_peca(self.peca_selecionada, destino)
-                if self.verificar_vencedor():
-                    return  # Evitar que a função continue após o fim do jogo
-            self.peca_selecionada = None
+                if not self.captura_continua(destino):
+                    if self.verificar_vencedor():
+                        return  # Evitar que a função continue após o fim do jogo
+                    self.passar_vez()
+                self.peca_selecionada = None
 
         self.atualizar_tabuleiro()
 
+    def captura_continua(self, destino):
+        linha_destino, coluna_destino = destino
+
+        for delta_linha in [-2, 2]:
+            for delta_coluna in [-2, 2]:
+                linha_captura = linha_destino + delta_linha // 2
+                coluna_captura = coluna_destino + delta_coluna // 2
+                if 0 <= linha_captura < self.tamanho_tabuleiro and 0 <= coluna_captura < self.tamanho_tabuleiro:
+                    peca_capturada = self.tabuleiro[linha_captura][coluna_captura]
+                    if peca_capturada is not None and peca_capturada.cor != self.jogador_atual:
+                        if self.tabuleiro[linha_destino][coluna_destino] is None:
+                            return True
+        return False
+
     def selecionar_peca(self, linha, coluna):
-        if self.tabuleiro[linha][coluna] is not None:
+        peca = self.tabuleiro[linha][coluna]
+        if peca is not None and peca.cor == self.jogador_atual:
             self.peca_selecionada = (linha, coluna)
 
     def mover_peca(self, origem, destino):
         linha_origem, coluna_origem = origem
         linha_destino, coluna_destino = destino
+
+        # Realizar a captura (remover a peça capturada)
+        if abs(linha_destino - linha_origem) == 2 and abs(coluna_destino - coluna_origem) == 2:
+            linha_captura = (linha_destino + linha_origem) // 2
+            coluna_captura = (coluna_destino + coluna_origem) // 2
+            self.tabuleiro[linha_captura][coluna_captura] = None
+
+        # Mover a peça para o destino
         self.tabuleiro[linha_destino][coluna_destino] = self.tabuleiro[linha_origem][coluna_origem]
         self.tabuleiro[linha_origem][coluna_origem] = None
 
@@ -70,9 +114,21 @@ class TabuleiroDamas:
 
         peca = self.tabuleiro[linha_origem][coluna_origem]
 
-        if peca is not None:
-            # Permitir movimento para qualquer direção, mas apenas uma casa por vez
-            if abs(linha_destino - linha_origem) == 1 and abs(coluna_destino - coluna_origem) == 1:
+        # Verificar se a casa de destino está vazia
+        if self.tabuleiro[linha_destino][coluna_destino] is not None:
+            return False
+
+        # Permitir movimento para qualquer direção, mas apenas uma casa por vez
+        if abs(linha_destino - linha_origem) == 1 and abs(coluna_destino - coluna_origem) == 1:
+            return True
+
+        # Verificar captura (movimento diagonal pulando uma peça)
+        if abs(linha_destino - linha_origem) == 2 and abs(coluna_destino - coluna_origem) == 2:
+            linha_captura = (linha_destino + linha_origem) // 2
+            coluna_captura = (coluna_destino + coluna_origem) // 2
+
+            peca_capturada = self.tabuleiro[linha_captura][coluna_captura]
+            if peca_capturada is not None and peca_capturada.cor != self.jogador_atual:
                 return True
 
         return False
@@ -109,6 +165,9 @@ class TabuleiroDamas:
 
         return False
 
+    def passar_vez(self):
+        self.jogador_atual = "branca" if self.jogador_atual == "preta" else "preta"
+
     def atualizar_tabuleiro(self):
         self.canvas.delete("all")
         for linha in range(self.tamanho_tabuleiro):
@@ -126,7 +185,6 @@ class TabuleiroDamas:
                     self.canvas.create_oval(x0 + 5, y0 + 5, x1 - 5, y1 - 5, fill=cor_peca)
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Jogo de Damas")
-    tabuleiro = TabuleiroDamas(root)
-    root.mainloop()
+    root_boas_vindas = tk.Tk()
+    tela_boas_vindas = TelaBoasVindas(root_boas_vindas)
+    root_boas_vindas.mainloop()
