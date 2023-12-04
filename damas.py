@@ -210,4 +210,3 @@ if __name__ == "__main__":
     root_boas_vindas = tk.Tk()
     tela_boas_vindas = TelaBoasVindas(root_boas_vindas)
     root_boas_vindas.mainloop()
-
