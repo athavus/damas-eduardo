@@ -1,24 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
 
-class TelaBoasVindas:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Bem-vindo ao Jogo de Damas")
-
-        self.rotulo_boas_vindas = tk.Label(root, text="Bem-vindo ao Jogo de Damas", font=("Helvetica", 16))
-        self.rotulo_boas_vindas.pack(pady=20)
-
-        self.botao_jogar = tk.Button(root, text="Jogar", command=self.iniciar_jogo)
-        self.botao_jogar.pack(pady=10)
-
-    def iniciar_jogo(self):
-        self.root.destroy()  # Fechar a tela de boas-vindas
-        root_jogo = tk.Tk()
-        root_jogo.title("Jogo de Damas")
-        tabuleiro = TabuleiroDamas(root_jogo)
-        root_jogo.mainloop()
-
 class Peca:
     def __init__(self, cor, rei=False):
         self.cor = cor
@@ -71,12 +53,15 @@ class TabuleiroDamas:
                     if self.verificar_vencedor():
                         return  # Evitar que a função continue após o fim do jogo
                     self.passar_vez()
-                self.peca_selecionada = None
+                # Permanecer na mesma peça selecionada se houver mais capturas possíveis
+                if not self.captura_continua(destino):
+                    self.peca_selecionada = None
 
         self.atualizar_tabuleiro()
 
     def captura_continua(self, destino):
         linha_destino, coluna_destino = destino
+        linha_origem, coluna_origem = self.peca_selecionada
 
         for delta_linha in [-2, 2]:
             for delta_coluna in [-2, 2]:
@@ -86,7 +71,10 @@ class TabuleiroDamas:
                     peca_capturada = self.tabuleiro[linha_captura][coluna_captura]
                     if peca_capturada is not None and peca_capturada.cor != self.jogador_atual:
                         if self.tabuleiro[linha_destino][coluna_destino] is None:
+                            # Realizar a captura
+                            self.tabuleiro[linha_captura][coluna_captura] = None
                             return True
+
         return False
 
     def selecionar_peca(self, linha, coluna):
@@ -118,8 +106,11 @@ class TabuleiroDamas:
         if self.tabuleiro[linha_destino][coluna_destino] is not None:
             return False
 
-        # Permitir movimento para qualquer direção, mas apenas uma casa por vez
-        if abs(linha_destino - linha_origem) == 1 and abs(coluna_destino - coluna_origem) == 1:
+        # Determinar a direção permitida com base no jogador atual
+        direcao_permitida = 1 if self.jogador_atual == "branca" else -1
+
+        # Permitir movimento para frente, mas apenas uma casa por vez
+        if (linha_destino - linha_origem) == direcao_permitida and abs(coluna_destino - coluna_origem) == 1:
             return True
 
         # Verificar captura (movimento diagonal pulando uma peça)
@@ -184,6 +175,37 @@ class TabuleiroDamas:
                     cor_peca = "black" if peca.cor == "preta" else "white"
                     self.canvas.create_oval(x0 + 5, y0 + 5, x1 - 5, y1 - 5, fill=cor_peca)
 
+        # Destacar movimentos possíveis
+        if self.peca_selecionada is not None:
+            linha_sel, coluna_sel = self.peca_selecionada
+            for linha in range(self.tamanho_tabuleiro):
+                for coluna in range(self.tamanho_tabuleiro):
+                    destino = (linha, coluna)
+                    if self.movimento_valido(self.peca_selecionada, destino):
+                        x0 = coluna * self.largura_casa
+                        y0 = linha * self.altura_casa
+                        x1 = x0 + self.largura_casa
+                        y1 = y0 + self.altura_casa
+                        self.canvas.create_rectangle(x0, y0, x1, y1, outline="green", width=3)
+class TelaBoasVindas:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Bem-vindo ao Jogo de Damas")
+
+        self.rotulo_boas_vindas = tk.Label(root, text="Bem-vindo ao Jogo de Damas", font=("Helvetica", 16))
+        self.rotulo_boas_vindas.pack(pady=20)
+
+        self.botao_jogar = tk.Button(root, text="Jogar", command=self.iniciar_jogo)
+        self.botao_jogar.pack(pady=10)
+
+    def iniciar_jogo(self):
+        self.root.destroy()  # Fechar a tela de boas-vindas
+        root_jogo = tk.Tk()
+        root_jogo.title("Jogo de Damas")
+        tabuleiro = TabuleiroDamas(root_jogo)
+        root_jogo.mainloop()
+
+        
 if __name__ == "__main__":
     root_boas_vindas = tk.Tk()
     tela_boas_vindas = TelaBoasVindas(root_boas_vindas)
